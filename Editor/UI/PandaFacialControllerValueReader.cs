@@ -141,22 +141,7 @@ namespace SillBill.PandaFacial.Editor
             string semanticId)
         {
             var counters = new Counters();
-            float value = 0f;
-            PandaFacialResolvedMapping resolved = PandaFacialMappingResolver.Resolve(target, semanticId);
-            if (resolved.IsMapped)
-            {
-                counters.Mapped++;
-                value = ReadNormalizedWeight(resolved);
-            }
-            else if (resolved.Status == PandaFacialMappingStatus.Unmapped)
-            {
-                counters.Unmapped++;
-            }
-            else
-            {
-                counters.Invalid++;
-            }
-
+            float value = ReadValue(target, semanticId, ref counters);
             return State(label, value, counters, false);
         }
 
@@ -182,18 +167,32 @@ namespace SillBill.PandaFacial.Editor
             string semanticId,
             ref Counters counters)
         {
-            PandaFacialResolvedMapping resolved = PandaFacialMappingResolver.Resolve(target, semanticId);
-            if (resolved.IsMapped)
+            IReadOnlyList<PandaFacialResolvedMapping> resolvedTargets =
+                PandaFacialMappingResolver.ResolveAll(target, semanticId);
+            float value = 0f;
+            bool foundReadableTarget = false;
+            for (int i = 0; i < resolvedTargets.Count; i++)
             {
-                counters.Mapped++;
-                return ReadNormalizedWeight(resolved);
+                PandaFacialResolvedMapping resolved = resolvedTargets[i];
+                if (resolved.IsMapped)
+                {
+                    counters.Mapped++;
+                    if (!foundReadableTarget && resolved.WeightMultiplier > ActiveThreshold)
+                    {
+                        value = ReadNormalizedWeight(resolved);
+                        foundReadableTarget = true;
+                    }
+                }
+                else if (resolved.Status == PandaFacialMappingStatus.Unmapped)
+                {
+                    counters.Unmapped++;
+                }
+                else if (resolved.Status != PandaFacialMappingStatus.Disabled)
+                {
+                    counters.Invalid++;
+                }
             }
-
-            if (resolved.Status == PandaFacialMappingStatus.Unmapped)
-                counters.Unmapped++;
-            else
-                counters.Invalid++;
-            return 0f;
+            return value;
         }
 
         private static void ReadValue(
@@ -202,26 +201,17 @@ namespace SillBill.PandaFacial.Editor
             List<float> destination,
             ref Counters counters)
         {
-            PandaFacialResolvedMapping resolved = PandaFacialMappingResolver.Resolve(target, semanticId);
-            if (resolved.IsMapped)
-            {
-                counters.Mapped++;
-                destination.Add(ReadNormalizedWeight(resolved));
-            }
-            else if (resolved.Status == PandaFacialMappingStatus.Unmapped)
-            {
-                counters.Unmapped++;
-            }
-            else
-            {
-                counters.Invalid++;
-            }
+            int mappedBefore = counters.Mapped;
+            float value = ReadValue(target, semanticId, ref counters);
+            if (counters.Mapped > mappedBefore)
+                destination.Add(value);
         }
 
         private static float ReadNormalizedWeight(PandaFacialResolvedMapping mapping)
         {
             return Mathf.Clamp01(
-                mapping.Renderer.GetBlendShapeWeight(mapping.BlendShapeIndex) / 100f);
+                mapping.Renderer.GetBlendShapeWeight(mapping.BlendShapeIndex) /
+                (100f * mapping.WeightMultiplier));
         }
 
         private static float Average(List<float> values)

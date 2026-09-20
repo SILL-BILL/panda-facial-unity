@@ -99,8 +99,8 @@ namespace SillBill.PandaFacial
             Channel(MouthSpreadR, "Right Spread", PandaFacialSemanticGroup.MouthWidth),
             Channel(MouthNarrowR, "Right Narrow", PandaFacialSemanticGroup.MouthWidth),
 
-            Channel(EyeCloseL, "Blink Left", PandaFacialSemanticGroup.EyeExpression),
-            Channel(EyeCloseR, "Blink Right", PandaFacialSemanticGroup.EyeExpression),
+            Channel(EyeCloseL, "Eyelid Close Left", PandaFacialSemanticGroup.EyeExpression),
+            Channel(EyeCloseR, "Eyelid Close Right", PandaFacialSemanticGroup.EyeExpression),
             Channel(EyeSmileL, "Eye Smile Left", PandaFacialSemanticGroup.EyeExpression),
             Channel(EyeSmileR, "Eye Smile Right", PandaFacialSemanticGroup.EyeExpression),
             Channel(EyeSurpriseL, "Surprise Left", PandaFacialSemanticGroup.EyeExpression),
@@ -109,8 +109,8 @@ namespace SillBill.PandaFacial
             Channel(EyeAngryR, "Angry Right", PandaFacialSemanticGroup.EyeExpression),
             Channel(EyeSadL, "Sad Left", PandaFacialSemanticGroup.EyeExpression),
             Channel(EyeSadR, "Sad Right", PandaFacialSemanticGroup.EyeExpression),
-            Channel(EyeSquintL, "Squint Left", PandaFacialSemanticGroup.EyeExpression),
-            Channel(EyeSquintR, "Squint Right", PandaFacialSemanticGroup.EyeExpression),
+            Channel(EyeSquintL, "Eyelid Jito Left", PandaFacialSemanticGroup.EyeExpression),
+            Channel(EyeSquintR, "Eyelid Jito Right", PandaFacialSemanticGroup.EyeExpression),
 
             Channel(BrowUpL, "Brow Up Left", PandaFacialSemanticGroup.Brow),
             Channel(BrowUpR, "Brow Up Right", PandaFacialSemanticGroup.Brow),

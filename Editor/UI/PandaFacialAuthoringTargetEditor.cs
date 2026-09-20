@@ -35,6 +35,8 @@ namespace SillBill.PandaFacial.Editor
         private float blinkLeft;
         private float blinkRight;
         private string controllerStatus;
+        private PandaFacialDetectionReport autoDetectReport;
+        private bool autoDetectDetailsFoldout;
         private readonly Dictionary<PandaFacialSemanticGroup, bool> groupFoldouts =
             new Dictionary<PandaFacialSemanticGroup, bool>();
         private readonly Dictionary<string, bool> mappingOverrideFoldouts =
@@ -290,9 +292,9 @@ namespace SillBill.PandaFacial.Editor
         private void DrawEyeExpressionController(PandaFacialAuthoringTarget authoringTarget)
         {
             PandaFacialControllerValueState blinkLeft = ReadControl(
-                authoringTarget, "Blink Left", PandaFacialSemanticChannels.EyeCloseL);
+                authoringTarget, "Eyelid Close Left", PandaFacialSemanticChannels.EyeCloseL);
             PandaFacialControllerValueState blinkRight = ReadControl(
-                authoringTarget, "Blink Right", PandaFacialSemanticChannels.EyeCloseR);
+                authoringTarget, "Eyelid Close Right", PandaFacialSemanticChannels.EyeCloseR);
             PandaFacialControllerValueState smileLeft = ReadControl(
                 authoringTarget, "Eye Smile Left", PandaFacialSemanticChannels.EyeSmileL);
             PandaFacialControllerValueState smileRight = ReadControl(
@@ -310,9 +312,9 @@ namespace SillBill.PandaFacial.Editor
             PandaFacialControllerValueState sadRight = ReadControl(
                 authoringTarget, "Sad Right", PandaFacialSemanticChannels.EyeSadR);
             PandaFacialControllerValueState squintLeft = ReadControl(
-                authoringTarget, "Squint Left", PandaFacialSemanticChannels.EyeSquintL);
+                authoringTarget, "Eyelid Jito Left", PandaFacialSemanticChannels.EyeSquintL);
             PandaFacialControllerValueState squintRight = ReadControl(
-                authoringTarget, "Squint Right", PandaFacialSemanticChannels.EyeSquintR);
+                authoringTarget, "Eyelid Jito Right", PandaFacialSemanticChannels.EyeSquintR);
 
             IReadOnlyList<PandaFacialSemanticWeight> current =
                 PandaFacialControllerLogic.EyeExpressions(
@@ -330,7 +332,7 @@ namespace SillBill.PandaFacial.Editor
             if (isOpen)
             {
                 EditorGUI.indentLevel++;
-                DrawPairedController(authoringTarget, "Blink",
+                DrawPairedController(authoringTarget, "Eyelid Close",
                     PandaFacialSemanticChannels.EyeCloseL, PandaFacialSemanticChannels.EyeCloseR,
                     blinkLeft, blinkRight);
                 DrawPairedController(authoringTarget, "Eye Smile",
@@ -345,7 +347,7 @@ namespace SillBill.PandaFacial.Editor
                 DrawPairedController(authoringTarget, "Sad",
                     PandaFacialSemanticChannels.EyeSadL, PandaFacialSemanticChannels.EyeSadR,
                     sadLeft, sadRight);
-                DrawPairedController(authoringTarget, "Squint",
+                DrawPairedController(authoringTarget, "Eyelid Jito",
                     PandaFacialSemanticChannels.EyeSquintL, PandaFacialSemanticChannels.EyeSquintR,
                     squintLeft, squintRight);
                 EditorGUI.indentLevel--;
@@ -715,15 +717,15 @@ namespace SillBill.PandaFacial.Editor
                 WriteControllerKeys(authoringTarget, vowels);
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Blink", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Eyelid Close", EditorStyles.boldLabel);
             EditorGUI.BeginChangeCheck();
-            blinkLeft = EditorGUILayout.Slider("Blink L", blinkLeft, 0f, 1f);
-            blinkRight = EditorGUILayout.Slider("Blink R", blinkRight, 0f, 1f);
+            blinkLeft = EditorGUILayout.Slider("Eyelid Close L", blinkLeft, 0f, 1f);
+            blinkRight = EditorGUILayout.Slider("Eyelid Close R", blinkRight, 0f, 1f);
             IReadOnlyList<PandaFacialSemanticWeight> blink = PandaFacialControllerLogic.Blink(
                 blinkLeft, blinkRight);
             if (EditorGUI.EndChangeCheck())
                 PreviewController(authoringTarget, blink);
-            if (GUILayout.Button("Write Blink Keys at Timeline Playhead"))
+            if (GUILayout.Button("Write Eyelid Close Keys at Timeline Playhead"))
                 WriteControllerKeys(authoringTarget, blink);
 
             if (!string.IsNullOrEmpty(controllerStatus))
@@ -811,9 +813,11 @@ namespace SillBill.PandaFacial.Editor
             string operation,
             PandaFacialControllerOperationReport report)
         {
-            string summary = operation + ": " + report.AppliedCount + "/" + report.OutputCount +
-                             " applied; " + report.UnmappedCount + " unmapped; " +
-                             report.InvalidCount + " invalid.";
+            string summary = operation + ": " + report.AppliedCount +
+                             " targets applied from " + report.OutputCount + " semantic outputs; " +
+                             report.UnmappedCount + " unmapped; " +
+                             report.InvalidCount + " invalid; " +
+                             report.DisabledCount + " disabled.";
             if (report.Warnings.Count == 0)
                 return summary;
             return summary + "\n" + string.Join("\n", report.Warnings);
@@ -845,6 +849,23 @@ namespace SillBill.PandaFacial.Editor
 
         private void DrawMappingSettings(PandaFacialAuthoringTarget authoringTarget)
         {
+            using (new EditorGUI.DisabledScope(authoringTarget.DefaultFaceRenderer == null))
+            {
+                if (GUILayout.Button(new GUIContent(
+                        "Auto Detect Unmapped Channels",
+                        "Detect confirmed aliases on Default Face Renderer. Existing mappings are preserved.")))
+                {
+                    serializedObject.ApplyModifiedProperties();
+                    autoDetectReport = PandaFacialAutoDetectUtility.DetectAndApply(authoringTarget);
+                    serializedObject.Update();
+                }
+            }
+
+            if (authoringTarget.DefaultFaceRenderer == null)
+                EditorGUILayout.HelpBox("Assign Default Face Renderer to use Auto Detect.", MessageType.Info);
+            DrawAutoDetectReport(autoDetectReport);
+            EditorGUILayout.Space();
+
             foreach (PandaFacialSemanticGroup group in Enum.GetValues(typeof(PandaFacialSemanticGroup)))
             {
                 groupFoldouts[group] = EditorGUILayout.Foldout(
@@ -865,11 +886,55 @@ namespace SillBill.PandaFacial.Editor
             }
         }
 
+        private void DrawAutoDetectReport(PandaFacialDetectionReport report)
+        {
+            if (report == null)
+                return;
+            if (!string.IsNullOrEmpty(report.Error))
+            {
+                EditorGUILayout.HelpBox(report.Error, MessageType.Warning);
+                return;
+            }
+
+            EditorGUILayout.HelpBox(
+                "Auto Detect Result — Mapped: " + report.MappedCount +
+                ", Unmapped: " + report.UnmappedCount +
+                ", Ambiguous: " + report.AmbiguousCount +
+                ", Skipped Existing: " + report.SkippedExistingCount,
+                report.AmbiguousCount > 0 ? MessageType.Warning : MessageType.Info);
+            if (report.AmbiguousCount == 0)
+                return;
+
+            autoDetectDetailsFoldout = EditorGUILayout.Foldout(
+                autoDetectDetailsFoldout,
+                "Ambiguous Candidates",
+                true);
+            if (!autoDetectDetailsFoldout)
+                return;
+            EditorGUI.indentLevel++;
+            for (int i = 0; i < report.Entries.Count; i++)
+            {
+                PandaFacialDetectionEntry entry = report.Entries[i];
+                if (entry.Status != PandaFacialDetectionStatus.Ambiguous)
+                    continue;
+                string displayName = PandaFacialSemanticChannels.TryGet(
+                    entry.SemanticId,
+                    out PandaFacialSemanticChannel channel)
+                    ? channel.DisplayName
+                    : entry.SemanticId;
+                EditorGUILayout.LabelField(
+                    displayName + ": " + string.Join(", ", entry.Candidates));
+            }
+            EditorGUI.indentLevel--;
+        }
+
         private void DrawMappingRow(
             PandaFacialAuthoringTarget authoringTarget,
             PandaFacialSemanticChannel channel)
         {
             SerializedProperty mapping = FindMappingProperty(channel.Id);
+            if (mapping != null)
+                PandaFacialAutoDetectUtility.Migrate(mapping);
             SkinnedMeshRenderer overrideRenderer = mapping != null
                 ? mapping.FindPropertyRelative("targetRenderer").objectReferenceValue as SkinnedMeshRenderer
                 : null;
@@ -904,11 +969,23 @@ namespace SillBill.PandaFacial.Editor
             }
 
             bool advanced = mappingOverrideFoldouts.TryGetValue(channel.Id, out bool isOpen) && isOpen;
-            advanced = EditorGUILayout.Foldout(advanced, "Advanced", true);
+            advanced = EditorGUILayout.Foldout(advanced, "Advanced / Additional Targets", true);
             mappingOverrideFoldouts[channel.Id] = advanced;
             if (advanced)
             {
+                mapping = mapping ?? CreateMappingProperty(channel.Id);
                 EditorGUI.indentLevel++;
+                EditorGUILayout.LabelField("Primary Target", EditorStyles.miniBoldLabel);
+                EditorGUILayout.PropertyField(
+                    mapping.FindPropertyRelative("primaryEnabled"),
+                    new GUIContent("Enabled"));
+                SerializedProperty primaryMultiplier =
+                    mapping.FindPropertyRelative("primaryWeightMultiplier");
+                primaryMultiplier.floatValue = EditorGUILayout.Slider(
+                    "Weight Multiplier",
+                    primaryMultiplier.floatValue,
+                    0f,
+                    1f);
                 bool useOverride = overrideRenderer != null;
                 EditorGUI.BeginChangeCheck();
                 useOverride = EditorGUILayout.Toggle("Override Renderer", useOverride);
@@ -934,6 +1011,82 @@ namespace SillBill.PandaFacial.Editor
                         mapping = mapping ?? CreateMappingProperty(channel.Id);
                         mapping.FindPropertyRelative("targetRenderer").objectReferenceValue = selectedOverride;
                     }
+                }
+
+                EditorGUILayout.Space();
+                SerializedProperty additionalTargets =
+                    mapping.FindPropertyRelative("additionalTargets");
+                bool removed = false;
+                for (int i = 0; i < additionalTargets.arraySize; i++)
+                {
+                    SerializedProperty additional = additionalTargets.GetArrayElementAtIndex(i);
+                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("Additional Target " + (i + 2), EditorStyles.miniBoldLabel);
+                    if (GUILayout.Button("Remove", GUILayout.Width(64f)))
+                    {
+                        additionalTargets.DeleteArrayElementAtIndex(i);
+                        removed = true;
+                    }
+                    EditorGUILayout.EndHorizontal();
+                    if (!removed)
+                    {
+                        EditorGUILayout.PropertyField(
+                            additional.FindPropertyRelative("enabled"),
+                            new GUIContent("Enabled"));
+                        SerializedProperty multiplier =
+                            additional.FindPropertyRelative("weightMultiplier");
+                        multiplier.floatValue = EditorGUILayout.Slider(
+                            "Weight Multiplier",
+                            multiplier.floatValue,
+                            0f,
+                            1f);
+
+                        SerializedProperty additionalRenderer =
+                            additional.FindPropertyRelative("targetRenderer");
+                        bool additionalOverride = additionalRenderer.objectReferenceValue != null;
+                        EditorGUI.BeginChangeCheck();
+                        additionalOverride = EditorGUILayout.Toggle(
+                            "Override Renderer",
+                            additionalOverride);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            additionalRenderer.objectReferenceValue =
+                                additionalOverride ? defaultRenderer : null;
+                        }
+                        if (additionalOverride)
+                        {
+                            additionalRenderer.objectReferenceValue = EditorGUILayout.ObjectField(
+                                "Renderer",
+                                additionalRenderer.objectReferenceValue,
+                                typeof(SkinnedMeshRenderer),
+                                true);
+                        }
+
+                        SkinnedMeshRenderer additionalEffectiveRenderer =
+                            additionalRenderer.objectReferenceValue as SkinnedMeshRenderer;
+                        if (additionalEffectiveRenderer == null)
+                            additionalEffectiveRenderer = defaultRenderer;
+                        SerializedProperty additionalName =
+                            additional.FindPropertyRelative("blendShapeName");
+                        additionalName.stringValue = DrawBlendShapeMappingField(
+                            additionalEffectiveRenderer,
+                            additionalName.stringValue);
+                    }
+                    EditorGUILayout.EndVertical();
+                    if (removed)
+                        break;
+                }
+
+                if (GUILayout.Button("+ Add Target"))
+                {
+                    int index = additionalTargets.arraySize;
+                    additionalTargets.InsertArrayElementAtIndex(index);
+                    SerializedProperty added = additionalTargets.GetArrayElementAtIndex(index);
+                    added.FindPropertyRelative("targetRenderer").objectReferenceValue = null;
+                    added.FindPropertyRelative("blendShapeName").stringValue = string.Empty;
+                    added.FindPropertyRelative("weightMultiplier").floatValue = 1f;
+                    added.FindPropertyRelative("enabled").boolValue = true;
                 }
                 EditorGUI.indentLevel--;
             }
@@ -1150,6 +1303,10 @@ namespace SillBill.PandaFacial.Editor
             mapping.FindPropertyRelative("semanticId").stringValue = semanticId;
             mapping.FindPropertyRelative("targetRenderer").objectReferenceValue = null;
             mapping.FindPropertyRelative("blendShapeName").stringValue = string.Empty;
+            mapping.FindPropertyRelative("schemaVersion").intValue = 2;
+            mapping.FindPropertyRelative("primaryWeightMultiplier").floatValue = 1f;
+            mapping.FindPropertyRelative("primaryEnabled").boolValue = true;
+            mapping.FindPropertyRelative("additionalTargets").arraySize = 0;
             return mapping;
         }
 

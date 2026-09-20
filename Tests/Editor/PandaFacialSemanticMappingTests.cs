@@ -262,6 +262,14 @@ namespace SillBill.PandaFacial.Editor.Tests
             mapping.FindPropertyRelative("semanticId").stringValue = semanticId;
             mapping.FindPropertyRelative("targetRenderer").objectReferenceValue = targetRenderer;
             mapping.FindPropertyRelative("blendShapeName").stringValue = blendShapeName;
+            SerializedProperty schemaVersion = mapping.FindPropertyRelative("schemaVersion");
+            if (schemaVersion != null)
+            {
+                schemaVersion.intValue = 2;
+                mapping.FindPropertyRelative("primaryWeightMultiplier").floatValue = 1f;
+                mapping.FindPropertyRelative("primaryEnabled").boolValue = true;
+                mapping.FindPropertyRelative("additionalTargets").arraySize = 0;
+            }
             serializedTarget.ApplyModifiedPropertiesWithoutUndo();
         }
 

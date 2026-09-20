@@ -2,6 +2,19 @@
 
 All notable changes to Panda Facial are documented in this file.
 
+## [0.1.8] - 2026-09-20
+
+### Added
+
+- Added one-to-many semantic mappings with independent renderer overrides, BlendShape names, enabled states, and weight multipliers.
+- Added conservative auto detection for unmapped channels using confirmed aliases and exact, case-insensitive, then normalized matching.
+- Added per-target preview and AnimationClip key writing with invalid-target isolation, curve preservation, and Undo support.
+
+### Changed
+
+- Renamed the Inspector-facing eye labels to Eyelid Close and Eyelid Jito without changing their semantic IDs.
+- Kept the existing v0.1.7 mapping fields as the primary target and added serialized migration defaults for existing mappings.
+
 ## [0.1.7] - 2026-09-20
 
 ### Added

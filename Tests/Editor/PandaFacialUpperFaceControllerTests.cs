@@ -76,7 +76,8 @@ namespace SillBill.PandaFacial.Editor.Tests
                 .Select(channel => channel.DisplayName)
                 .ToArray();
 
-            Assert.That(names, Does.Contain("Blink Left"));
+            Assert.That(names, Does.Contain("Eyelid Close Left"));
+            Assert.That(names, Does.Contain("Eyelid Jito Right"));
             Assert.That(names, Does.Contain("Eye Smile Right"));
             Assert.That(names, Does.Contain("Brow Serious Left"));
             Assert.That(names.All(name => !name.Contains("eye_") && !name.Contains("brow_")), Is.True);
@@ -163,9 +164,9 @@ namespace SillBill.PandaFacial.Editor.Tests
             SetWeight(PandaFacialSemanticChannels.EyeCloseL, 20f);
 
             PandaFacialControllerValueState left = PandaFacialControllerValueReader.ReadSingle(
-                authoringTarget, "Blink Left", PandaFacialSemanticChannels.EyeCloseL);
+                authoringTarget, "Eyelid Close Left", PandaFacialSemanticChannels.EyeCloseL);
             PandaFacialControllerValueState right = PandaFacialControllerValueReader.ReadSingle(
-                authoringTarget, "Blink Right", PandaFacialSemanticChannels.EyeCloseR);
+                authoringTarget, "Eyelid Close Right", PandaFacialSemanticChannels.EyeCloseR);
             PandaFacialControllerOperationReport report =
                 PandaFacialControllerAnimationUtility.ApplyPreview(
                     authoringTarget,

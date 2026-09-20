@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SillBill.PandaFacial
@@ -9,7 +10,8 @@ namespace SillBill.PandaFacial
         Unmapped,
         InvalidRenderer,
         InvalidMesh,
-        InvalidBlendShape
+        InvalidBlendShape,
+        Disabled
     }
 
     public readonly struct PandaFacialResolvedMapping
@@ -19,13 +21,17 @@ namespace SillBill.PandaFacial
             PandaFacialMappingStatus status,
             SkinnedMeshRenderer renderer,
             string blendShapeName,
-            int blendShapeIndex)
+            int blendShapeIndex,
+            float weightMultiplier,
+            int targetIndex)
         {
             SemanticId = semanticId;
             Status = status;
             Renderer = renderer;
             BlendShapeName = blendShapeName;
             BlendShapeIndex = blendShapeIndex;
+            WeightMultiplier = Mathf.Clamp01(weightMultiplier);
+            TargetIndex = targetIndex;
         }
 
         public string SemanticId { get; }
@@ -33,7 +39,14 @@ namespace SillBill.PandaFacial
         public SkinnedMeshRenderer Renderer { get; }
         public string BlendShapeName { get; }
         public int BlendShapeIndex { get; }
+        public float WeightMultiplier { get; }
+        public int TargetIndex { get; }
         public bool IsMapped => Status == PandaFacialMappingStatus.Mapped;
+
+        public float ApplyMultiplier(float semanticWeight)
+        {
+            return Mathf.Clamp(semanticWeight * WeightMultiplier, 0f, 100f);
+        }
     }
 
     public static class PandaFacialMappingResolver
@@ -42,18 +55,31 @@ namespace SillBill.PandaFacial
             PandaFacialAuthoringTarget authoringTarget,
             string semanticId)
         {
-            if (authoringTarget == null || string.IsNullOrEmpty(semanticId))
-                return Unmapped(semanticId);
+            IReadOnlyList<PandaFacialResolvedMapping> targets = ResolveAll(authoringTarget, semanticId);
+            for (int i = 0; i < targets.Count; i++)
+            {
+                if (targets[i].IsMapped)
+                    return targets[i];
+            }
+            return targets[0];
+        }
 
-            var mappings = authoringTarget.SemanticMappings;
+        public static IReadOnlyList<PandaFacialResolvedMapping> ResolveAll(
+            PandaFacialAuthoringTarget authoringTarget,
+            string semanticId)
+        {
+            if (authoringTarget == null || string.IsNullOrEmpty(semanticId))
+                return Single(Unmapped(semanticId));
+
+            IReadOnlyList<PandaFacialSemanticMapping> mappings = authoringTarget.SemanticMappings;
             for (int i = 0; i < mappings.Count; i++)
             {
                 PandaFacialSemanticMapping mapping = mappings[i];
                 if (mapping != null && string.Equals(mapping.SemanticId, semanticId, StringComparison.Ordinal))
-                    return Resolve(mapping, authoringTarget.DefaultFaceRenderer);
+                    return ResolveAll(mapping, authoringTarget.DefaultFaceRenderer);
             }
 
-            return Unmapped(semanticId);
+            return Single(Unmapped(semanticId));
         }
 
         public static PandaFacialResolvedMapping Resolve(PandaFacialSemanticMapping mapping)
@@ -65,31 +91,57 @@ namespace SillBill.PandaFacial
             PandaFacialSemanticMapping mapping,
             SkinnedMeshRenderer defaultRenderer)
         {
-            if (mapping == null || string.IsNullOrEmpty(mapping.SemanticId))
-                return Unmapped(mapping != null ? mapping.SemanticId : null);
-
-            if (string.IsNullOrEmpty(mapping.BlendShapeName))
-                return Unmapped(mapping.SemanticId);
-
-            SkinnedMeshRenderer effectiveRenderer = mapping.TargetRenderer != null
-                ? mapping.TargetRenderer
-                : defaultRenderer;
-            if (effectiveRenderer == null)
+            IReadOnlyList<PandaFacialResolvedMapping> targets = ResolveAll(mapping, defaultRenderer);
+            for (int i = 0; i < targets.Count; i++)
             {
-                return Result(
-                    mapping,
-                    PandaFacialMappingStatus.InvalidRenderer,
-                    -1,
-                    null);
+                if (targets[i].IsMapped)
+                    return targets[i];
+            }
+            return targets[0];
+        }
+
+        public static IReadOnlyList<PandaFacialResolvedMapping> ResolveAll(
+            PandaFacialSemanticMapping mapping,
+            SkinnedMeshRenderer defaultRenderer)
+        {
+            if (mapping == null || string.IsNullOrEmpty(mapping.SemanticId))
+                return Single(Unmapped(mapping != null ? mapping.SemanticId : null));
+
+            int additionalCount = mapping.AdditionalTargets != null
+                ? mapping.AdditionalTargets.Count
+                : 0;
+            var results = new List<PandaFacialResolvedMapping>(1 + additionalCount)
+            {
+                ResolveTarget(
+                    mapping.SemanticId,
+                    mapping.TargetRenderer,
+                    defaultRenderer,
+                    mapping.BlendShapeName,
+                    mapping.PrimaryWeightMultiplier,
+                    mapping.PrimaryEnabled,
+                    0)
+            };
+
+            for (int i = 0; i < additionalCount; i++)
+            {
+                PandaFacialMappingTarget target = mapping.AdditionalTargets[i];
+                if (target == null)
+                {
+                    results.Add(Unmapped(mapping.SemanticId, i + 1));
+                    continue;
+                }
+
+                results.Add(ResolveTarget(
+                    mapping.SemanticId,
+                    target.TargetRenderer,
+                    defaultRenderer,
+                    target.BlendShapeName,
+                    target.WeightMultiplier,
+                    target.Enabled,
+                    i + 1));
             }
 
-            if (effectiveRenderer.sharedMesh == null)
-                return Result(mapping, PandaFacialMappingStatus.InvalidMesh, -1, effectiveRenderer);
-
-            int blendShapeIndex = effectiveRenderer.sharedMesh.GetBlendShapeIndex(mapping.BlendShapeName);
-            return blendShapeIndex >= 0
-                ? Result(mapping, PandaFacialMappingStatus.Mapped, blendShapeIndex, effectiveRenderer)
-                : Result(mapping, PandaFacialMappingStatus.InvalidBlendShape, -1, effectiveRenderer);
+            return results.AsReadOnly();
         }
 
         public static string GetStatusMessage(PandaFacialResolvedMapping mapping)
@@ -106,33 +158,85 @@ namespace SillBill.PandaFacial
                     return "The mapped renderer has no Mesh.";
                 case PandaFacialMappingStatus.InvalidBlendShape:
                     return "The mapped BlendShape does not exist on the renderer's current Mesh.";
+                case PandaFacialMappingStatus.Disabled:
+                    return "Target is disabled.";
                 default:
                     return "Invalid mapping.";
             }
         }
 
-        private static PandaFacialResolvedMapping Result(
-            PandaFacialSemanticMapping mapping,
-            PandaFacialMappingStatus status,
-            int blendShapeIndex,
-            SkinnedMeshRenderer effectiveRenderer)
+        private static PandaFacialResolvedMapping ResolveTarget(
+            string semanticId,
+            SkinnedMeshRenderer rendererOverride,
+            SkinnedMeshRenderer defaultRenderer,
+            string blendShapeName,
+            float weightMultiplier,
+            bool enabled,
+            int targetIndex)
         {
-            return new PandaFacialResolvedMapping(
-                mapping.SemanticId,
-                status,
-                effectiveRenderer,
-                mapping.BlendShapeName,
-                blendShapeIndex);
+            if (!enabled)
+            {
+                return new PandaFacialResolvedMapping(
+                    semanticId,
+                    PandaFacialMappingStatus.Disabled,
+                    rendererOverride != null ? rendererOverride : defaultRenderer,
+                    blendShapeName,
+                    -1,
+                    weightMultiplier,
+                    targetIndex);
+            }
+
+            if (string.IsNullOrEmpty(blendShapeName))
+                return Unmapped(semanticId, targetIndex, weightMultiplier);
+
+            SkinnedMeshRenderer effectiveRenderer = rendererOverride != null
+                ? rendererOverride
+                : defaultRenderer;
+            if (effectiveRenderer == null)
+            {
+                return Result(semanticId, PandaFacialMappingStatus.InvalidRenderer, null,
+                    blendShapeName, -1, weightMultiplier, targetIndex);
+            }
+            if (effectiveRenderer.sharedMesh == null)
+            {
+                return Result(semanticId, PandaFacialMappingStatus.InvalidMesh, effectiveRenderer,
+                    blendShapeName, -1, weightMultiplier, targetIndex);
+            }
+
+            int blendShapeIndex = effectiveRenderer.sharedMesh.GetBlendShapeIndex(blendShapeName);
+            return blendShapeIndex >= 0
+                ? Result(semanticId, PandaFacialMappingStatus.Mapped, effectiveRenderer,
+                    blendShapeName, blendShapeIndex, weightMultiplier, targetIndex)
+                : Result(semanticId, PandaFacialMappingStatus.InvalidBlendShape, effectiveRenderer,
+                    blendShapeName, -1, weightMultiplier, targetIndex);
         }
 
-        private static PandaFacialResolvedMapping Unmapped(string semanticId)
+        private static PandaFacialResolvedMapping Result(
+            string semanticId,
+            PandaFacialMappingStatus status,
+            SkinnedMeshRenderer renderer,
+            string blendShapeName,
+            int blendShapeIndex,
+            float multiplier,
+            int targetIndex)
         {
             return new PandaFacialResolvedMapping(
-                semanticId,
-                PandaFacialMappingStatus.Unmapped,
-                null,
-                null,
-                -1);
+                semanticId, status, renderer, blendShapeName, blendShapeIndex, multiplier, targetIndex);
+        }
+
+        private static PandaFacialResolvedMapping Unmapped(
+            string semanticId,
+            int targetIndex = 0,
+            float multiplier = 1f)
+        {
+            return Result(semanticId, PandaFacialMappingStatus.Unmapped, null, null, -1,
+                multiplier, targetIndex);
+        }
+
+        private static IReadOnlyList<PandaFacialResolvedMapping> Single(
+            PandaFacialResolvedMapping mapping)
+        {
+            return Array.AsReadOnly(new[] { mapping });
         }
     }
 }

@@ -12,6 +12,7 @@ namespace SillBill.PandaFacial.Editor
         internal int MappedCount { get; set; }
         internal int UnmappedCount { get; set; }
         internal int InvalidCount { get; set; }
+        internal int DisabledCount { get; set; }
         internal int AppliedCount { get; set; }
         internal IReadOnlyList<string> Warnings => warnings;
 
@@ -41,19 +42,25 @@ namespace SillBill.PandaFacial.Editor
             for (int i = 0; i < outputs.Count; i++)
             {
                 PandaFacialSemanticWeight output = outputs[i];
-                PandaFacialResolvedMapping resolved = PandaFacialMappingResolver.Resolve(
+                IReadOnlyList<PandaFacialResolvedMapping> resolvedTargets = PandaFacialMappingResolver.ResolveAll(
                     authoringTarget,
                     output.SemanticId);
-                if (!TryAcceptMapping(output.SemanticId, resolved, report))
-                    continue;
+                for (int targetIndex = 0; targetIndex < resolvedTargets.Count; targetIndex++)
+                {
+                    PandaFacialResolvedMapping resolved = resolvedTargets[targetIndex];
+                    if (!TryAcceptMapping(output.SemanticId, resolved, report))
+                        continue;
 
-                if (recordedRenderers.Add(resolved.Renderer))
-                    Undo.RecordObject(resolved.Renderer, "Preview Panda Facial Controller");
+                    if (recordedRenderers.Add(resolved.Renderer))
+                        Undo.RecordObject(resolved.Renderer, "Preview Panda Facial Controller");
 
-                resolved.Renderer.SetBlendShapeWeight(resolved.BlendShapeIndex, output.Weight);
-                PrefabUtility.RecordPrefabInstancePropertyModifications(resolved.Renderer);
-                EditorUtility.SetDirty(resolved.Renderer);
-                report.AppliedCount++;
+                    resolved.Renderer.SetBlendShapeWeight(
+                        resolved.BlendShapeIndex,
+                        resolved.ApplyMultiplier(output.Weight));
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(resolved.Renderer);
+                    EditorUtility.SetDirty(resolved.Renderer);
+                    report.AppliedCount++;
+                }
             }
 
             Undo.CollapseUndoOperations(undoGroup);
@@ -78,29 +85,35 @@ namespace SillBill.PandaFacial.Editor
             for (int i = 0; i < outputs.Count; i++)
             {
                 PandaFacialSemanticWeight output = outputs[i];
-                PandaFacialResolvedMapping resolved = PandaFacialMappingResolver.Resolve(
+                IReadOnlyList<PandaFacialResolvedMapping> resolvedTargets = PandaFacialMappingResolver.ResolveAll(
                     authoringTarget,
                     output.SemanticId);
-                if (!TryAcceptMapping(output.SemanticId, resolved, report))
-                    continue;
-
-                if (animationRoot == null ||
-                    (resolved.Renderer.transform != animationRoot &&
-                     !resolved.Renderer.transform.IsChildOf(animationRoot)))
+                for (int targetIndex = 0; targetIndex < resolvedTargets.Count; targetIndex++)
                 {
-                    report.InvalidCount++;
-                    report.MappedCount--;
-                    report.AddWarning(
-                        GetDisplayName(output.SemanticId) +
-                        ": renderer is outside the Timeline binding root.");
-                    continue;
-                }
+                    PandaFacialResolvedMapping resolved = resolvedTargets[targetIndex];
+                    if (!TryAcceptMapping(output.SemanticId, resolved, report))
+                        continue;
 
-                EditorCurveBinding binding = PandaFacialAnimationUtility.CreateBlendShapeBinding(
-                    animationRoot,
-                    resolved.Renderer,
-                    resolved.BlendShapeName);
-                keys.Add(new PandaFacialBlendShapeKey(binding, output.Weight));
+                    if (animationRoot == null ||
+                        (resolved.Renderer.transform != animationRoot &&
+                         !resolved.Renderer.transform.IsChildOf(animationRoot)))
+                    {
+                        report.InvalidCount++;
+                        report.MappedCount--;
+                        report.AddWarning(
+                            GetDisplayName(output.SemanticId) + TargetSuffix(resolved) +
+                            ": renderer is outside the animation binding root.");
+                        continue;
+                    }
+
+                    EditorCurveBinding binding = PandaFacialAnimationUtility.CreateBlendShapeBinding(
+                        animationRoot,
+                        resolved.Renderer,
+                        resolved.BlendShapeName);
+                    keys.Add(new PandaFacialBlendShapeKey(
+                        binding,
+                        resolved.ApplyMultiplier(output.Weight)));
+                }
             }
 
             PandaFacialAnimationUtility.WriteBlendShapeKeys(clip, keys, time);
@@ -119,15 +132,25 @@ namespace SillBill.PandaFacial.Editor
                 return true;
             }
 
-            if (resolved.Status == PandaFacialMappingStatus.Unmapped)
+            if (resolved.Status == PandaFacialMappingStatus.Disabled)
+                report.DisabledCount++;
+            else if (resolved.Status == PandaFacialMappingStatus.Unmapped)
                 report.UnmappedCount++;
             else
                 report.InvalidCount++;
 
-            report.AddWarning(
-                GetDisplayName(semanticId) + ": " +
-                PandaFacialMappingResolver.GetStatusMessage(resolved));
+            if (resolved.Status != PandaFacialMappingStatus.Disabled)
+            {
+                report.AddWarning(
+                    GetDisplayName(semanticId) + TargetSuffix(resolved) + ": " +
+                    PandaFacialMappingResolver.GetStatusMessage(resolved));
+            }
             return false;
+        }
+
+        private static string TargetSuffix(PandaFacialResolvedMapping mapping)
+        {
+            return mapping.TargetIndex == 0 ? string.Empty : " target " + (mapping.TargetIndex + 1);
         }
 
         private static string GetDisplayName(string semanticId)

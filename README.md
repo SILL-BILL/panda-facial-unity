@@ -20,9 +20,9 @@ The tool writes `blendShape.<ActualBlendShapeName>` on the selected clip. The au
 
 ## Semantic mapping
 
-Built-in semantic channels such as `mouth_a`, `eye_close_l`, and `brow_up_r` can be mapped to a character-specific `SkinnedMeshRenderer` and BlendShape name. Semantic authoring resolves that mapping and still writes only the actual `blendShape.<name>` curve.
+Built-in semantic channels such as `mouth_a`, `eye_close_l`, and `brow_up_r` can be mapped to one or more character-specific `SkinnedMeshRenderer` and BlendShape targets. The primary mapping stays simple; optional targets, per-target renderer overrides, enabled states, and 0–1 weight multipliers are available under **Advanced / Additional Targets**. Semantic authoring resolves every target and still writes only actual `blendShape.<name>` curves.
 
-Unmapped channels are optional. A missing renderer, missing Mesh, or removed BlendShape is reported per channel without disabling unrelated mappings. Eye-look and bone-based gaze controls are outside Panda Facial's semantic channel contract.
+**Auto Detect Unmapped Channels** can fill empty primary mappings from confirmed aliases on the Default Face Renderer. Detection prefers exact, then case-insensitive, then normalized names; ambiguous matches remain unmapped and existing mappings are never overwritten. Unmapped channels are optional. A disabled target, missing renderer, missing Mesh, or removed BlendShape is reported per target without disabling valid targets. Eye-look and bone-based gaze controls are outside Panda Facial's semantic channel contract.
 
 ## Controller logic
 
@@ -32,9 +32,9 @@ Controller outputs always include zero values for opposing channels. The Editor 
 
 ## Eyelid and brow controllers
 
-The Custom Inspector provides independent Left and Right sliders for Blink, Eye Smile, Surprise, Angry, Sad, and Squint, plus Brow Up, Brow Down, Brow Angry, Brow Sad, Brow Smile, and Brow Serious. Each pair and each complete section can be reset or keyed. The controls read their current values from mapped BlendShape weights and write only actual `blendShape.<name>` curves.
+The Custom Inspector provides independent Left and Right sliders for Eyelid Close, Eye Smile, Surprise, Angry, Sad, and Eyelid Jito, plus Brow Up, Brow Down, Brow Angry, Brow Sad, Brow Smile, and Brow Serious. Each pair and each complete section can be reset or keyed. The controls read their current values from mapped BlendShape weights and write only actual `blendShape.<name>` curves.
 
-Eyelid and Brow are separate mapped-aware foldouts. A section initially opens when at least one channel is validly mapped and otherwise starts closed. Manual choices are remembered per Authoring Target for the current Editor session. Section reset and key actions remain accessible while a foldout is closed. Eye Look, eye-bone control, Mirror/Sync, and one-to-many mappings are intentionally outside this foundation release.
+Eyelid and Brow are separate mapped-aware foldouts. A section initially opens when at least one channel is validly mapped and otherwise starts closed. Manual choices are remembered per Authoring Target for the current Editor session. Section reset and key actions remain accessible while a foldout is closed. Eye Look, eye-bone control, and Mirror/Sync are intentionally outside this foundation release.
 
 ## Mouth controller
 
