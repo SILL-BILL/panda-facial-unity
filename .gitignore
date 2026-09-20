@@ -1,0 +1,89 @@
+# Unity generated
+[Ll]ibrary/
+[Ll]ibrary.meta
+[Tt]emp/
+[Tt]emp.meta
+[Oo]bj/
+[Oo]bj.meta
+[Bb]uild/
+[Bb]uild.meta
+[Bb]uilds/
+[Bb]uilds.meta
+[Ll]ogs/
+[Ll]ogs.meta
+[Uu]ser[Ss]ettings/
+[Uu]ser[Ss]ettings.meta
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# IDE / Editor
+.vs/
+.vscode/
+.idea/
+.gradle/
+
+# Unity generated project files
+*.csproj
+*.unityproj
+*.sln
+*.sln.meta
+*.slnx
+*.slnx.meta
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.DotSettings.user
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Crash / logs
+*.log
+sysinfo.txt
+mono_crash.*
+
+# Builds / exported packages
+/dist/
+/dist.meta
+*.apk
+*.aab
+*.app
+*.unitypackage
+*.unitypackage.meta
+
+# Test / generated content
+InitTestScene*.unity*
+UIElementsSchema/
+
+# Blender temporary files, if test assets are used
+*.blend1
+*.blend1.meta
+
+# Merge artifacts
+*.orig
+*.swp
+
+
+[Ll]ocal[Oo]nly/
+[Ll]ocal[Oo]nly.meta
+*Miyuki*
+*Zhao*
+
+# Nested development projects: Unity-generated metadata outside Assets
+/Development~/panda-facial-dev-*.meta
+/Development~/panda-facial-dev-*/Assets.meta
+/Development~/panda-facial-dev-*/Assets/Test.meta
+/Development~/panda-facial-dev-*/Packages.meta
+/Development~/panda-facial-dev-*/Packages/*.meta
+/Development~/panda-facial-dev-*/ProjectSettings.meta
+/Development~/panda-facial-dev-*/ProjectSettings/**/*.meta

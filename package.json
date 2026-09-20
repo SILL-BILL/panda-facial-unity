@@ -1,0 +1,15 @@
+{
+  "name": "com.sillbill.panda-facial",
+  "displayName": "Panda Facial",
+  "version": "0.1.7",
+  "unity": "2022.3",
+  "unityRelease": "22f1",
+  "description": "Unity Editor authoring tools for writing facial BlendShape keys directly to AnimationClips.",
+  "author": {
+    "name": "Gonsaku"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "com.unity.timeline": "1.7.6"
+  }
+}

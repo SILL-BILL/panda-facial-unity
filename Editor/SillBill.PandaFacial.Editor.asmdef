@@ -1,0 +1,12 @@
+{
+  "name": "SillBill.PandaFacial.Editor",
+  "rootNamespace": "SillBill.PandaFacial.Editor",
+  "references": [
+    "SillBill.PandaFacial",
+    "Unity.Timeline",
+    "Unity.Timeline.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "SillBill.PandaFacial.Build.Editor",
+  "rootNamespace": "SillBill.PandaFacial.Build",
+  "includePlatforms": [
+    "Editor"
+  ]
+}

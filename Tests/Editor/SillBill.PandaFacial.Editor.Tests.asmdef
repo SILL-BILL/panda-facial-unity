@@ -1,0 +1,15 @@
+{
+  "name": "SillBill.PandaFacial.Editor.Tests",
+  "rootNamespace": "SillBill.PandaFacial.Editor.Tests",
+  "references": [
+    "SillBill.PandaFacial.Editor",
+    "SillBill.PandaFacial",
+    "Unity.Timeline"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

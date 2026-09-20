@@ -1,0 +1,8 @@
+{
+  "name": "com.sillbill.panda-facial.build",
+  "displayName": "Panda Facial Development Build Tools",
+  "version": "1.0.0",
+  "unity": "2022.3",
+  "unityRelease": "22f1",
+  "description": "Development-only tooling for building Panda Facial test artifacts."
+}
