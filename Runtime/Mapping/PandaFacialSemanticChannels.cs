@@ -60,8 +60,8 @@ namespace SillBill.PandaFacial
         public const string EyeAngryR = "eye_angry_r";
         public const string EyeSadL = "eye_sad_l";
         public const string EyeSadR = "eye_sad_r";
-        public const string EyeSquintL = "eye_squint_l";
-        public const string EyeSquintR = "eye_squint_r";
+        public const string EyeJitoL = "eye_jito_l";
+        public const string EyeJitoR = "eye_jito_r";
 
         public const string BrowUpL = "brow_up_l";
         public const string BrowUpR = "brow_up_r";
@@ -109,8 +109,8 @@ namespace SillBill.PandaFacial
             Channel(EyeAngryR, "Angry Right", PandaFacialSemanticGroup.EyeExpression),
             Channel(EyeSadL, "Sad Left", PandaFacialSemanticGroup.EyeExpression),
             Channel(EyeSadR, "Sad Right", PandaFacialSemanticGroup.EyeExpression),
-            Channel(EyeSquintL, "Eyelid Jito Left", PandaFacialSemanticGroup.EyeExpression),
-            Channel(EyeSquintR, "Eyelid Jito Right", PandaFacialSemanticGroup.EyeExpression),
+            Channel(EyeJitoL, "Eyelid Jito Left", PandaFacialSemanticGroup.EyeExpression),
+            Channel(EyeJitoR, "Eyelid Jito Right", PandaFacialSemanticGroup.EyeExpression),
 
             Channel(BrowUpL, "Brow Up Left", PandaFacialSemanticGroup.Brow),
             Channel(BrowUpR, "Brow Up Right", PandaFacialSemanticGroup.Brow),

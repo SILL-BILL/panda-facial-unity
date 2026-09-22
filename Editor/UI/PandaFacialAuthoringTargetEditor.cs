@@ -311,10 +311,10 @@ namespace SillBill.PandaFacial.Editor
                 authoringTarget, "Sad Left", PandaFacialSemanticChannels.EyeSadL);
             PandaFacialControllerValueState sadRight = ReadControl(
                 authoringTarget, "Sad Right", PandaFacialSemanticChannels.EyeSadR);
-            PandaFacialControllerValueState squintLeft = ReadControl(
-                authoringTarget, "Eyelid Jito Left", PandaFacialSemanticChannels.EyeSquintL);
-            PandaFacialControllerValueState squintRight = ReadControl(
-                authoringTarget, "Eyelid Jito Right", PandaFacialSemanticChannels.EyeSquintR);
+            PandaFacialControllerValueState jitoLeft = ReadControl(
+                authoringTarget, "Eyelid Jito Left", PandaFacialSemanticChannels.EyeJitoL);
+            PandaFacialControllerValueState jitoRight = ReadControl(
+                authoringTarget, "Eyelid Jito Right", PandaFacialSemanticChannels.EyeJitoR);
 
             IReadOnlyList<PandaFacialSemanticWeight> current =
                 PandaFacialControllerLogic.EyeExpressions(
@@ -323,7 +323,7 @@ namespace SillBill.PandaFacial.Editor
                     surpriseLeft.Value, surpriseRight.Value,
                     angryLeft.Value, angryRight.Value,
                     sadLeft.Value, sadRight.Value,
-                    squintLeft.Value, squintRight.Value);
+                    jitoLeft.Value, jitoRight.Value);
 
             bool isOpen = DrawUpperFaceFoldout(
                 authoringTarget,
@@ -348,8 +348,8 @@ namespace SillBill.PandaFacial.Editor
                     PandaFacialSemanticChannels.EyeSadL, PandaFacialSemanticChannels.EyeSadR,
                     sadLeft, sadRight);
                 DrawPairedController(authoringTarget, "Eyelid Jito",
-                    PandaFacialSemanticChannels.EyeSquintL, PandaFacialSemanticChannels.EyeSquintR,
-                    squintLeft, squintRight);
+                    PandaFacialSemanticChannels.EyeJitoL, PandaFacialSemanticChannels.EyeJitoR,
+                    jitoLeft, jitoRight);
                 EditorGUI.indentLevel--;
             }
 

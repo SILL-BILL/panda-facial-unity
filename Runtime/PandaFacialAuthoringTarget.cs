@@ -9,7 +9,7 @@ namespace SillBill.PandaFacial
     /// </summary>
     [DisallowMultipleComponent]
     [AddComponentMenu("Panda Facial/Authoring Target")]
-    public sealed class PandaFacialAuthoringTarget : MonoBehaviour
+    public sealed class PandaFacialAuthoringTarget : MonoBehaviour, ISerializationCallbackReceiver
     {
         [SerializeField] private SkinnedMeshRenderer defaultFaceRenderer;
         [SerializeField] private SkinnedMeshRenderer targetRenderer;
@@ -23,5 +23,17 @@ namespace SillBill.PandaFacial
         public string BlendShapeName => blendShapeName;
         public string SelectedSemanticId => selectedSemanticId;
         public IReadOnlyList<PandaFacialSemanticMapping> SemanticMappings => semanticMappings;
+
+        public void OnBeforeSerialize()
+        {
+        }
+
+        public void OnAfterDeserialize()
+        {
+            selectedSemanticId = PandaFacialSemanticMigration.MigrateId(selectedSemanticId);
+            if (semanticMappings == null)
+                semanticMappings = new List<PandaFacialSemanticMapping>();
+            PandaFacialSemanticMigration.MigrateMappings(semanticMappings);
+        }
     }
 }

@@ -16,6 +16,41 @@ namespace SillBill.PandaFacial
         public string BlendShapeName => blendShapeName;
         public float WeightMultiplier => Mathf.Clamp01(weightMultiplier);
         public bool Enabled => enabled;
+
+        internal static PandaFacialMappingTarget Create(
+            SkinnedMeshRenderer renderer,
+            string name,
+            float multiplier,
+            bool isEnabled)
+        {
+            return new PandaFacialMappingTarget
+            {
+                targetRenderer = renderer,
+                blendShapeName = name,
+                weightMultiplier = multiplier,
+                enabled = isEnabled
+            };
+        }
+
+        internal PandaFacialMappingTarget Copy()
+        {
+            return new PandaFacialMappingTarget
+            {
+                targetRenderer = targetRenderer,
+                blendShapeName = blendShapeName,
+                weightMultiplier = weightMultiplier,
+                enabled = enabled
+            };
+        }
+
+        internal bool HasSameConfiguration(PandaFacialMappingTarget other)
+        {
+            return other != null &&
+                   ReferenceEquals(targetRenderer, other.targetRenderer) &&
+                   string.Equals(blendShapeName, other.blendShapeName, StringComparison.Ordinal) &&
+                   weightMultiplier.Equals(other.weightMultiplier) &&
+                   enabled == other.enabled;
+        }
     }
 
     [Serializable]
@@ -39,7 +74,26 @@ namespace SillBill.PandaFacial
         public int SchemaVersion => schemaVersion;
         public float PrimaryWeightMultiplier => Mathf.Clamp01(primaryWeightMultiplier);
         public bool PrimaryEnabled => primaryEnabled;
-        public IReadOnlyList<PandaFacialMappingTarget> AdditionalTargets => additionalTargets;
+        public IReadOnlyList<PandaFacialMappingTarget> AdditionalTargets =>
+            additionalTargets != null
+                ? (IReadOnlyList<PandaFacialMappingTarget>)additionalTargets
+                : Array.Empty<PandaFacialMappingTarget>();
+
+        internal void SetSemanticId(string value)
+        {
+            semanticId = value;
+        }
+
+        internal void MergeTargetsFrom(PandaFacialSemanticMapping source)
+        {
+            if (source == null)
+                return;
+
+            AddTargetIfUnique(source.CreatePrimaryTarget());
+            IReadOnlyList<PandaFacialMappingTarget> sourceAdditional = source.AdditionalTargets;
+            for (int i = 0; i < sourceAdditional.Count; i++)
+                AddTargetIfUnique(sourceAdditional[i]);
+        }
 
         public void OnBeforeSerialize()
         {
@@ -61,5 +115,30 @@ namespace SillBill.PandaFacial
             if (additionalTargets == null)
                 additionalTargets = new List<PandaFacialMappingTarget>();
         }
+
+        private PandaFacialMappingTarget CreatePrimaryTarget()
+        {
+            return PandaFacialMappingTarget.Create(
+                targetRenderer,
+                blendShapeName,
+                primaryWeightMultiplier,
+                primaryEnabled);
+        }
+
+        private void AddTargetIfUnique(PandaFacialMappingTarget candidate)
+        {
+            if (candidate == null || CreatePrimaryTarget().HasSameConfiguration(candidate))
+                return;
+            if (additionalTargets == null)
+                additionalTargets = new List<PandaFacialMappingTarget>();
+            for (int i = 0; i < additionalTargets.Count; i++)
+            {
+                if (additionalTargets[i] != null &&
+                    additionalTargets[i].HasSameConfiguration(candidate))
+                    return;
+            }
+            additionalTargets.Add(candidate.Copy());
+        }
+
     }
 }

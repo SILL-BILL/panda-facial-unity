@@ -20,8 +20,8 @@ namespace SillBill.PandaFacial.Editor.Tests
             PandaFacialSemanticChannels.EyeAngryR,
             PandaFacialSemanticChannels.EyeSadL,
             PandaFacialSemanticChannels.EyeSadR,
-            PandaFacialSemanticChannels.EyeSquintL,
-            PandaFacialSemanticChannels.EyeSquintR
+            PandaFacialSemanticChannels.EyeJitoL,
+            PandaFacialSemanticChannels.EyeJitoR
         };
 
         private static readonly string[] BrowChannels =
@@ -90,7 +90,7 @@ namespace SillBill.PandaFacial.Editor.Tests
         [TestCase(PandaFacialSemanticChannels.EyeSurpriseL, PandaFacialSemanticChannels.EyeSurpriseR)]
         [TestCase(PandaFacialSemanticChannels.EyeAngryL, PandaFacialSemanticChannels.EyeAngryR)]
         [TestCase(PandaFacialSemanticChannels.EyeSadL, PandaFacialSemanticChannels.EyeSadR)]
-        [TestCase(PandaFacialSemanticChannels.EyeSquintL, PandaFacialSemanticChannels.EyeSquintR)]
+        [TestCase(PandaFacialSemanticChannels.EyeJitoL, PandaFacialSemanticChannels.EyeJitoR)]
         [TestCase(PandaFacialSemanticChannels.BrowUpL, PandaFacialSemanticChannels.BrowUpR)]
         [TestCase(PandaFacialSemanticChannels.BrowDownL, PandaFacialSemanticChannels.BrowDownR)]
         [TestCase(PandaFacialSemanticChannels.BrowAngryL, PandaFacialSemanticChannels.BrowAngryR)]

@@ -2,6 +2,17 @@
 
 All notable changes to Panda Facial are documented in this file.
 
+## [0.1.9] - 2026-09-22
+
+### Added
+
+- Added confirmed eyelid aliases for Eyelid Close, Eye Smile, Surprise, Angry, Sad, and Eyelid Jito detection.
+
+### Changed
+
+- Replaced the built-in `eye_squint_l` / `eye_squint_r` semantic IDs with `eye_jito_l` / `eye_jito_r`.
+- Added automatic legacy mapping migration that preserves renderer overrides, BlendShape names, multipliers, enabled states, additional targets, and non-duplicate data when old and new IDs coexist.
+
 ## [0.1.8] - 2026-09-20
 
 ### Added

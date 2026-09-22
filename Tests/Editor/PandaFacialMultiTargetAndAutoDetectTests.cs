@@ -408,7 +408,7 @@ namespace SillBill.PandaFacial.Editor.Tests
 
         [TestCase(PandaFacialSemanticChannels.MouthI, "Fcl_MTH_I")]
         [TestCase(PandaFacialSemanticChannels.EyeCloseL, "Fcl_EYE_Close_L")]
-        public void ConfirmedZhaoAndMiyukiAliases_AreDetected(string semanticId, string confirmedName)
+        public void ConfirmedBuiltInAliasFixtures_AreDetected(string semanticId, string confirmedName)
         {
             PandaFacialDetectionEntry entry = DetectSingle(semanticId, confirmedName);
             Assert.That(entry.Status, Is.EqualTo(PandaFacialDetectionStatus.Detected));

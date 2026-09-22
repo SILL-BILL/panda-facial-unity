@@ -187,8 +187,8 @@ namespace SillBill.PandaFacial
             float angryRight,
             float sadLeft,
             float sadRight,
-            float squintLeft,
-            float squintRight)
+            float jitoLeft,
+            float jitoRight)
         {
             return Result(
                 NormalizedWeight(PandaFacialSemanticChannels.EyeCloseL, blinkLeft),
@@ -201,8 +201,8 @@ namespace SillBill.PandaFacial
                 NormalizedWeight(PandaFacialSemanticChannels.EyeAngryR, angryRight),
                 NormalizedWeight(PandaFacialSemanticChannels.EyeSadL, sadLeft),
                 NormalizedWeight(PandaFacialSemanticChannels.EyeSadR, sadRight),
-                NormalizedWeight(PandaFacialSemanticChannels.EyeSquintL, squintLeft),
-                NormalizedWeight(PandaFacialSemanticChannels.EyeSquintR, squintRight));
+                NormalizedWeight(PandaFacialSemanticChannels.EyeJitoL, jitoLeft),
+                NormalizedWeight(PandaFacialSemanticChannels.EyeJitoR, jitoRight));
         }
 
         public static IReadOnlyList<PandaFacialSemanticWeight> ResetEyeExpressions()

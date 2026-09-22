@@ -44,7 +44,7 @@ namespace SillBill.PandaFacial.Editor.Tests
                 "mouth_spread_l", "mouth_narrow_l", "mouth_spread_r", "mouth_narrow_r",
                 "eye_close_l", "eye_close_r", "eye_smile_l", "eye_smile_r",
                 "eye_surprise_l", "eye_surprise_r", "eye_angry_l", "eye_angry_r",
-                "eye_sad_l", "eye_sad_r", "eye_squint_l", "eye_squint_r",
+                "eye_sad_l", "eye_sad_r", "eye_jito_l", "eye_jito_r",
                 "brow_up_l", "brow_up_r", "brow_down_l", "brow_down_r",
                 "brow_angry_l", "brow_angry_r", "brow_sad_l", "brow_sad_r",
                 "brow_smile_l", "brow_smile_r", "brow_serious_l", "brow_serious_r"

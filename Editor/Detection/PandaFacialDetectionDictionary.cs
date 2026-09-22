@@ -29,9 +29,19 @@ namespace SillBill.PandaFacial.Editor
             Set(PandaFacialSemanticChannels.MouthUp, "Mouth_Up", "Fcl_MTH_Up");
             Set(PandaFacialSemanticChannels.MouthDown, "Mouth_Down", "Fcl_MTH_Down");
             Set(PandaFacialSemanticChannels.EyeCloseL,
-                "Eye_Close_L", "Blink_L", "Fcl_EYE_Close_L");
+                "Eye_Close_L", "Blink_L", "Fcl_EYE_Close_L", "Eyelid_Close_L");
             Set(PandaFacialSemanticChannels.EyeCloseR,
-                "Eye_Close_R", "Blink_R", "Fcl_EYE_Close_R");
+                "Eye_Close_R", "Blink_R", "Fcl_EYE_Close_R", "Eyelid_Close_R");
+            Set(PandaFacialSemanticChannels.EyeSmileL, "Eyelid_Smile_L");
+            Set(PandaFacialSemanticChannels.EyeSmileR, "Eyelid_Smile_R");
+            Set(PandaFacialSemanticChannels.EyeSurpriseL, "Eyelid_Surprise_L");
+            Set(PandaFacialSemanticChannels.EyeSurpriseR, "Eyelid_Surprise_R");
+            Set(PandaFacialSemanticChannels.EyeAngryL, "Eyelid_Angry_L");
+            Set(PandaFacialSemanticChannels.EyeAngryR, "Eyelid_Angry_R");
+            Set(PandaFacialSemanticChannels.EyeSadL, "Eyelid_Sad_L");
+            Set(PandaFacialSemanticChannels.EyeSadR, "Eyelid_Sad_R");
+            Set(PandaFacialSemanticChannels.EyeJitoL, "Eyelid_Jito_L");
+            Set(PandaFacialSemanticChannels.EyeJitoR, "Eyelid_Jito_R");
         }
 
         public IReadOnlyList<string> GetAliases(string semanticId)

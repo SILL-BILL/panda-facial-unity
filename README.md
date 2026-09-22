@@ -22,6 +22,8 @@ The tool writes `blendShape.<ActualBlendShapeName>` on the selected clip. The au
 
 Built-in semantic channels such as `mouth_a`, `eye_close_l`, and `brow_up_r` can be mapped to one or more character-specific `SkinnedMeshRenderer` and BlendShape targets. The primary mapping stays simple; optional targets, per-target renderer overrides, enabled states, and 0–1 weight multipliers are available under **Advanced / Additional Targets**. Semantic authoring resolves every target and still writes only actual `blendShape.<name>` curves.
 
+Eyelid Jito uses the built-in semantic IDs `eye_jito_l` and `eye_jito_r`. Authoring Targets saved with the legacy `eye_squint_l` or `eye_squint_r` IDs are migrated automatically without dropping their mapping targets.
+
 **Auto Detect Unmapped Channels** can fill empty primary mappings from confirmed aliases on the Default Face Renderer. Detection prefers exact, then case-insensitive, then normalized names; ambiguous matches remain unmapped and existing mappings are never overwritten. Unmapped channels are optional. A disabled target, missing renderer, missing Mesh, or removed BlendShape is reported per target without disabling valid targets. Eye-look and bone-based gaze controls are outside Panda Facial's semantic channel contract.
 
 ## Controller logic

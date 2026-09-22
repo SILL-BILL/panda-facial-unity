@@ -25,8 +25,8 @@ namespace SillBill.PandaFacial.Editor
             PandaFacialSemanticChannels.EyeAngryR,
             PandaFacialSemanticChannels.EyeSadL,
             PandaFacialSemanticChannels.EyeSadR,
-            PandaFacialSemanticChannels.EyeSquintL,
-            PandaFacialSemanticChannels.EyeSquintR
+            PandaFacialSemanticChannels.EyeJitoL,
+            PandaFacialSemanticChannels.EyeJitoR
         };
 
         private static readonly string[] BrowChannels =
