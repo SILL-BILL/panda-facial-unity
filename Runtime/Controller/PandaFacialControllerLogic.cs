@@ -24,6 +24,26 @@ namespace SillBill.PandaFacial
         }
     }
 
+    public readonly struct PandaFacialEyelidState
+    {
+        public PandaFacialEyelidState(float expression, float openness)
+        {
+            Expression = Sanitize01(expression, 1f);
+            Openness = Sanitize01(openness, 1f);
+        }
+
+        /// <summary>0 is Smile and 1 is Close.</summary>
+        public float Expression { get; }
+
+        /// <summary>0 is closed and 1 is open.</summary>
+        public float Openness { get; }
+
+        private static float Sanitize01(float value, float fallback)
+        {
+            return float.IsNaN(value) ? fallback : Mathf.Clamp01(value);
+        }
+    }
+
     /// <summary>
     /// Converts animator-facing controller values into semantic weights only.
     /// It intentionally has no knowledge of renderers, BlendShape names, Timeline, or UI.
@@ -163,6 +183,46 @@ namespace SillBill.PandaFacial
                 PandaFacialSemanticChannels.EyeCloseR,
                 left,
                 right);
+        }
+
+        public static PandaFacialEyelidState ReconstructEyelid(
+            float close,
+            float smile,
+            float openExpression)
+        {
+            close = ClampUnsigned(close);
+            smile = ClampUnsigned(smile);
+            float strength = Mathf.Clamp01(close + smile);
+            float expression = strength > 0.0001f
+                ? close / (close + smile)
+                : ClampUnsignedWithFallback(openExpression, 1f);
+            return new PandaFacialEyelidState(expression, 1f - strength);
+        }
+
+        public static IReadOnlyList<PandaFacialSemanticWeight> EyelidCloseSmile(
+            bool isLeft,
+            PandaFacialEyelidState state)
+        {
+            float strength = 1f - state.Openness;
+            float close = strength * state.Expression;
+            float smile = strength * (1f - state.Expression);
+            return Result(
+                NormalizedWeight(
+                    isLeft ? PandaFacialSemanticChannels.EyeCloseL : PandaFacialSemanticChannels.EyeCloseR,
+                    close),
+                NormalizedWeight(
+                    isLeft ? PandaFacialSemanticChannels.EyeSmileL : PandaFacialSemanticChannels.EyeSmileR,
+                    smile));
+        }
+
+        public static IReadOnlyList<PandaFacialSemanticWeight> EyelidCloseSmilePair(
+            PandaFacialEyelidState left,
+            PandaFacialEyelidState right)
+        {
+            var outputs = new List<PandaFacialSemanticWeight>(4);
+            Add(outputs, EyelidCloseSmile(true, left));
+            Add(outputs, EyelidCloseSmile(false, right));
+            return outputs.AsReadOnly();
         }
 
         public static IReadOnlyList<PandaFacialSemanticWeight> Pair(
@@ -323,6 +383,11 @@ namespace SillBill.PandaFacial
         private static float ClampUnsigned(float value)
         {
             return float.IsNaN(value) ? 0f : Mathf.Clamp01(value);
+        }
+
+        private static float ClampUnsignedWithFallback(float value, float fallback)
+        {
+            return float.IsNaN(value) ? fallback : Mathf.Clamp01(value);
         }
 
         private static IReadOnlyList<PandaFacialSemanticWeight> Result(

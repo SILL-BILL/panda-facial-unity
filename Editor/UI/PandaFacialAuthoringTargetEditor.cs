@@ -22,6 +22,9 @@ namespace SillBill.PandaFacial.Editor
         private bool controllerFoldout;
         private bool semanticControlFoldout;
         private bool directModeFoldout;
+        private Vector2 eyelidDragStartMouse;
+        private PandaFacialEyelidState eyelidDragStartValue;
+        private PandaFacialPadAxis eyelidDragAxis;
         private float mouthPositionX;
         private float mouthPositionY;
         private float mouthWidth;
@@ -291,14 +294,12 @@ namespace SillBill.PandaFacial.Editor
 
         private void DrawEyeExpressionController(PandaFacialAuthoringTarget authoringTarget)
         {
-            PandaFacialControllerValueState blinkLeft = ReadControl(
-                authoringTarget, "Eyelid Close Left", PandaFacialSemanticChannels.EyeCloseL);
-            PandaFacialControllerValueState blinkRight = ReadControl(
-                authoringTarget, "Eyelid Close Right", PandaFacialSemanticChannels.EyeCloseR);
-            PandaFacialControllerValueState smileLeft = ReadControl(
-                authoringTarget, "Eye Smile Left", PandaFacialSemanticChannels.EyeSmileL);
-            PandaFacialControllerValueState smileRight = ReadControl(
-                authoringTarget, "Eye Smile Right", PandaFacialSemanticChannels.EyeSmileR);
+            PandaFacialEyelidValueState eyelidLeft = PandaFacialControllerValueReader.ReadEyelid(
+                authoringTarget, true, PandaFacialUpperFaceSessionState.GetOpenExpression(authoringTarget, true));
+            PandaFacialEyelidValueState eyelidRight = PandaFacialControllerValueReader.ReadEyelid(
+                authoringTarget, false, PandaFacialUpperFaceSessionState.GetOpenExpression(authoringTarget, false));
+            RememberEyelidExpression(authoringTarget, true, eyelidLeft.Value);
+            RememberEyelidExpression(authoringTarget, false, eyelidRight.Value);
             PandaFacialControllerValueState surpriseLeft = ReadControl(
                 authoringTarget, "Surprise Left", PandaFacialSemanticChannels.EyeSurpriseL);
             PandaFacialControllerValueState surpriseRight = ReadControl(
@@ -318,8 +319,8 @@ namespace SillBill.PandaFacial.Editor
 
             IReadOnlyList<PandaFacialSemanticWeight> current =
                 PandaFacialControllerLogic.EyeExpressions(
-                    blinkLeft.Value, blinkRight.Value,
-                    smileLeft.Value, smileRight.Value,
+                    EyelidClose(eyelidLeft.Value), EyelidClose(eyelidRight.Value),
+                    EyelidSmile(eyelidLeft.Value), EyelidSmile(eyelidRight.Value),
                     surpriseLeft.Value, surpriseRight.Value,
                     angryLeft.Value, angryRight.Value,
                     sadLeft.Value, sadRight.Value,
@@ -332,28 +333,28 @@ namespace SillBill.PandaFacial.Editor
             if (isOpen)
             {
                 EditorGUI.indentLevel++;
-                DrawPairedController(authoringTarget, "Eyelid Close",
-                    PandaFacialSemanticChannels.EyeCloseL, PandaFacialSemanticChannels.EyeCloseR,
-                    blinkLeft, blinkRight);
-                DrawPairedController(authoringTarget, "Eye Smile",
-                    PandaFacialSemanticChannels.EyeSmileL, PandaFacialSemanticChannels.EyeSmileR,
-                    smileLeft, smileRight);
+                bool sync = DrawSessionToggle(
+                    "Eyelid Sync L/R",
+                    PandaFacialUpperFaceSessionState.GetEyelidSync(authoringTarget),
+                    value => PandaFacialUpperFaceSessionState.SetEyelidSync(authoringTarget, value));
+                DrawEyelidController(authoringTarget, true, eyelidLeft, sync);
+                DrawEyelidController(authoringTarget, false, eyelidRight, sync);
                 DrawPairedController(authoringTarget, "Surprise",
                     PandaFacialSemanticChannels.EyeSurpriseL, PandaFacialSemanticChannels.EyeSurpriseR,
-                    surpriseLeft, surpriseRight);
+                    surpriseLeft, surpriseRight, sync);
                 DrawPairedController(authoringTarget, "Angry",
                     PandaFacialSemanticChannels.EyeAngryL, PandaFacialSemanticChannels.EyeAngryR,
-                    angryLeft, angryRight);
+                    angryLeft, angryRight, sync);
                 DrawPairedController(authoringTarget, "Sad",
                     PandaFacialSemanticChannels.EyeSadL, PandaFacialSemanticChannels.EyeSadR,
-                    sadLeft, sadRight);
+                    sadLeft, sadRight, sync);
                 DrawPairedController(authoringTarget, "Eyelid Jito",
                     PandaFacialSemanticChannels.EyeJitoL, PandaFacialSemanticChannels.EyeJitoR,
-                    jitoLeft, jitoRight);
+                    jitoLeft, jitoRight, sync);
                 EditorGUI.indentLevel--;
             }
 
-            DrawGroupResetAndKeyButtons(
+            DrawEyelidGroupResetAndKeyButtons(
                 authoringTarget,
                 "Reset Eyelid / Eye Expression",
                 "Set All Eyelid Keys",
@@ -403,24 +404,28 @@ namespace SillBill.PandaFacial.Editor
             if (isOpen)
             {
                 EditorGUI.indentLevel++;
+                bool sync = DrawSessionToggle(
+                    "Brow Sync L/R",
+                    PandaFacialUpperFaceSessionState.GetBrowSync(authoringTarget),
+                    value => PandaFacialUpperFaceSessionState.SetBrowSync(authoringTarget, value));
                 DrawPairedController(authoringTarget, "Brow Up",
                     PandaFacialSemanticChannels.BrowUpL, PandaFacialSemanticChannels.BrowUpR,
-                    upLeft, upRight);
+                    upLeft, upRight, sync);
                 DrawPairedController(authoringTarget, "Brow Down",
                     PandaFacialSemanticChannels.BrowDownL, PandaFacialSemanticChannels.BrowDownR,
-                    downLeft, downRight);
+                    downLeft, downRight, sync);
                 DrawPairedController(authoringTarget, "Brow Angry",
                     PandaFacialSemanticChannels.BrowAngryL, PandaFacialSemanticChannels.BrowAngryR,
-                    angryLeft, angryRight);
+                    angryLeft, angryRight, sync);
                 DrawPairedController(authoringTarget, "Brow Sad",
                     PandaFacialSemanticChannels.BrowSadL, PandaFacialSemanticChannels.BrowSadR,
-                    sadLeft, sadRight);
+                    sadLeft, sadRight, sync);
                 DrawPairedController(authoringTarget, "Brow Smile",
                     PandaFacialSemanticChannels.BrowSmileL, PandaFacialSemanticChannels.BrowSmileR,
-                    smileLeft, smileRight);
+                    smileLeft, smileRight, sync);
                 DrawPairedController(authoringTarget, "Brow Serious",
                     PandaFacialSemanticChannels.BrowSeriousL, PandaFacialSemanticChannels.BrowSeriousR,
-                    seriousLeft, seriousRight);
+                    seriousLeft, seriousRight, sync);
                 EditorGUI.indentLevel--;
             }
 
@@ -448,24 +453,186 @@ namespace SillBill.PandaFacial.Editor
             return newValue;
         }
 
+        private static bool DrawSessionToggle(string label, bool value, Action<bool> setter)
+        {
+            EditorGUI.BeginChangeCheck();
+            bool result = EditorGUILayout.ToggleLeft(label, value);
+            if (EditorGUI.EndChangeCheck())
+                setter(result);
+            return result;
+        }
+
+        private void DrawEyelidController(
+            PandaFacialAuthoringTarget authoringTarget,
+            bool isLeft,
+            PandaFacialEyelidValueState state,
+            bool sync)
+        {
+            string side = isLeft ? "Left" : "Right";
+            EditorGUILayout.Space(2f);
+            EditorGUILayout.LabelField(side + " Eyelid Close / Smile", EditorStyles.miniBoldLabel);
+            EditorGUILayout.LabelField(
+                "Smile  ←  Expression  →  Close     Open ↑ / Closed ↓",
+                EditorStyles.centeredGreyMiniLabel);
+
+            PandaFacialEyelidState value = DrawEyelidPad(side + " Eyelid", state.Value, out bool changed);
+            if (changed)
+            {
+                RememberEyelidExpression(authoringTarget, isLeft, value);
+                if (sync)
+                {
+                    PandaFacialUpperFaceSessionState.SetOpenExpression(authoringTarget, !isLeft, value.Expression);
+                    PreviewController(
+                        authoringTarget,
+                        PandaFacialControllerLogic.EyelidCloseSmilePair(value, value));
+                }
+                else
+                {
+                    PreviewController(
+                        authoringTarget,
+                        PandaFacialControllerLogic.EyelidCloseSmile(isLeft, value));
+                }
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Reset " + side))
+            {
+                var neutral = new PandaFacialEyelidState(1f, 1f);
+                PandaFacialUpperFaceSessionState.SetOpenExpression(authoringTarget, isLeft, 1f);
+                if (sync)
+                    PandaFacialUpperFaceSessionState.SetOpenExpression(authoringTarget, !isLeft, 1f);
+                PreviewController(
+                    authoringTarget,
+                    sync
+                        ? PandaFacialControllerLogic.EyelidCloseSmilePair(neutral, neutral)
+                        : PandaFacialControllerLogic.EyelidCloseSmile(isLeft, neutral));
+            }
+            if (GUILayout.Button(new GUIContent(
+                    "Set " + side + " Eyelid Key",
+                    "Write both Eyelid Close and Eye Smile at the current Timeline or Animator clip time.")))
+            {
+                WriteControllerKeys(
+                    authoringTarget,
+                    sync
+                        ? PandaFacialControllerLogic.EyelidCloseSmilePair(value, value)
+                        : PandaFacialControllerLogic.EyelidCloseSmile(isLeft, value));
+            }
+            EditorGUILayout.EndHorizontal();
+            DrawStateWarning(state.Close);
+            DrawStateWarning(state.Smile);
+        }
+
+        private PandaFacialEyelidState DrawEyelidPad(
+            string controlName,
+            PandaFacialEyelidState value,
+            out bool changed)
+        {
+            float availableWidth = Mathf.Max(100f, EditorGUIUtility.currentViewWidth - 90f);
+            float size = Mathf.Clamp(availableWidth, 110f, 180f);
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            Rect rect = GUILayoutUtility.GetRect(size, size, GUILayout.Width(size), GUILayout.Height(size));
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+
+            GUI.Box(rect, GUIContent.none);
+            int controlId = GUIUtility.GetControlID(controlName.GetHashCode(), FocusType.Passive, rect);
+            bool isActive = GUIUtility.hotControl == controlId;
+            Color quiet = EditorGUIUtility.isProSkin
+                ? new Color(1f, 1f, 1f, 0.18f)
+                : new Color(0f, 0f, 0f, 0.18f);
+            Color active = new Color(0.2f, 0.65f, 1f, 0.85f);
+            Color verticalColor = isActive && eyelidDragAxis == PandaFacialPadAxis.Vertical ? active : quiet;
+            Color horizontalColor = isActive && eyelidDragAxis == PandaFacialPadAxis.Horizontal ? active : quiet;
+            EditorGUI.DrawRect(new Rect(rect.center.x, rect.y + 1f, 1f, rect.height - 2f), verticalColor);
+            EditorGUI.DrawRect(new Rect(rect.x + 1f, rect.center.y, rect.width - 2f, 1f), horizontalColor);
+
+            changed = false;
+            Event current = Event.current;
+            if (current.button == 0)
+            {
+                if (current.type == EventType.MouseDown && rect.Contains(current.mousePosition))
+                {
+                    GUIUtility.hotControl = controlId;
+                    eyelidDragStartMouse = current.mousePosition;
+                    eyelidDragStartValue = value;
+                    eyelidDragAxis = PandaFacialPadAxis.None;
+                    current.Use();
+                }
+                else if (current.type == EventType.MouseDrag && isActive)
+                {
+                    Vector2 delta = current.mousePosition - eyelidDragStartMouse;
+                    eyelidDragAxis = PandaFacialAxisLock.Resolve(eyelidDragAxis, delta);
+                    if (eyelidDragAxis != PandaFacialPadAxis.None)
+                    {
+                        value = PandaFacialAxisLock.Apply(
+                            eyelidDragStartValue,
+                            delta,
+                            new Vector2(rect.width, rect.height),
+                            eyelidDragAxis);
+                        changed = true;
+                        GUI.changed = true;
+                    }
+                    current.Use();
+                }
+                else if (current.type == EventType.MouseUp && isActive)
+                {
+                    GUIUtility.hotControl = 0;
+                    eyelidDragAxis = PandaFacialPadAxis.None;
+                    current.Use();
+                }
+            }
+
+            Vector2 handle = new Vector2(
+                Mathf.Lerp(rect.xMin, rect.xMax, value.Expression),
+                Mathf.Lerp(rect.yMax, rect.yMin, value.Openness));
+            GUI.Box(new Rect(handle.x - 6f, handle.y - 6f, 12f, 12f), GUIContent.none, EditorStyles.miniButton);
+            EditorGUIUtility.AddCursorRect(rect, MouseCursor.MoveArrow);
+            return value;
+        }
+
+        private static void RememberEyelidExpression(
+            PandaFacialAuthoringTarget target,
+            bool isLeft,
+            PandaFacialEyelidState state)
+        {
+            if (state.Openness < 0.9999f)
+                PandaFacialUpperFaceSessionState.SetOpenExpression(target, isLeft, state.Expression);
+        }
+
+        private static float EyelidClose(PandaFacialEyelidState state)
+        {
+            return (1f - state.Openness) * state.Expression;
+        }
+
+        private static float EyelidSmile(PandaFacialEyelidState state)
+        {
+            return (1f - state.Openness) * (1f - state.Expression);
+        }
+
         private void DrawPairedController(
             PandaFacialAuthoringTarget authoringTarget,
             string label,
             string leftSemanticId,
             string rightSemanticId,
             PandaFacialControllerValueState left,
-            PandaFacialControllerValueState right)
+            PandaFacialControllerValueState right,
+            bool sync)
         {
             EditorGUILayout.LabelField(label, EditorStyles.miniBoldLabel);
             EditorGUI.BeginChangeCheck();
             float newLeft = EditorGUILayout.Slider("L", left.Value, 0f, 1f);
             if (EditorGUI.EndChangeCheck())
-                PreviewController(authoringTarget, PandaFacialControllerLogic.Single(leftSemanticId, newLeft));
+                PreviewController(authoringTarget, sync
+                    ? PandaFacialControllerLogic.Pair(leftSemanticId, rightSemanticId, newLeft, newLeft)
+                    : PandaFacialControllerLogic.Single(leftSemanticId, newLeft));
 
             EditorGUI.BeginChangeCheck();
             float newRight = EditorGUILayout.Slider("R", right.Value, 0f, 1f);
             if (EditorGUI.EndChangeCheck())
-                PreviewController(authoringTarget, PandaFacialControllerLogic.Single(rightSemanticId, newRight));
+                PreviewController(authoringTarget, sync
+                    ? PandaFacialControllerLogic.Pair(leftSemanticId, rightSemanticId, newRight, newRight)
+                    : PandaFacialControllerLogic.Single(rightSemanticId, newRight));
 
             DrawResetAndKeyButtons(
                 authoringTarget,
@@ -473,9 +640,33 @@ namespace SillBill.PandaFacial.Editor
                 "Set " + label + " Keys",
                 "Write the current independent Left and Right values to the active animation clip.",
                 PandaFacialControllerLogic.Pair(leftSemanticId, rightSemanticId, 0f, 0f),
-                PandaFacialControllerLogic.Pair(leftSemanticId, rightSemanticId, left.Value, right.Value));
+                PandaFacialControllerLogic.Pair(
+                    leftSemanticId, rightSemanticId, left.Value, sync ? left.Value : right.Value));
             DrawStateWarning(left);
             DrawStateWarning(right);
+        }
+
+        private void DrawEyelidGroupResetAndKeyButtons(
+            PandaFacialAuthoringTarget authoringTarget,
+            string resetLabel,
+            string keyLabel,
+            IReadOnlyList<PandaFacialSemanticWeight> resetOutputs,
+            IReadOnlyList<PandaFacialSemanticWeight> currentOutputs)
+        {
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button(resetLabel))
+            {
+                PandaFacialUpperFaceSessionState.SetOpenExpression(authoringTarget, true, 1f);
+                PandaFacialUpperFaceSessionState.SetOpenExpression(authoringTarget, false, 1f);
+                PreviewController(authoringTarget, resetOutputs);
+            }
+            if (GUILayout.Button(new GUIContent(
+                    keyLabel,
+                    "Write all current Eyelid and Eye Expression BlendShape values at the current Timeline or Animator clip time.")))
+            {
+                WriteControllerKeys(authoringTarget, currentOutputs);
+            }
+            EditorGUILayout.EndHorizontal();
         }
 
         private void DrawGroupResetAndKeyButtons(

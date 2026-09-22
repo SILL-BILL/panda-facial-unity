@@ -45,6 +45,23 @@ namespace SillBill.PandaFacial.Editor
         internal Vector2 Value => new Vector2(X.Value, Y.Value);
     }
 
+    internal readonly struct PandaFacialEyelidValueState
+    {
+        internal PandaFacialEyelidValueState(
+            PandaFacialEyelidState value,
+            PandaFacialControllerValueState close,
+            PandaFacialControllerValueState smile)
+        {
+            Value = value;
+            Close = close;
+            Smile = smile;
+        }
+
+        internal PandaFacialEyelidState Value { get; }
+        internal PandaFacialControllerValueState Close { get; }
+        internal PandaFacialControllerValueState Smile { get; }
+    }
+
     /// <summary>
     /// Reconstructs controller values from mapped BlendShape weights.
     /// When opposing channels are both active, positive minus negative is used and a warning is returned.
@@ -143,6 +160,26 @@ namespace SillBill.PandaFacial.Editor
             var counters = new Counters();
             float value = ReadValue(target, semanticId, ref counters);
             return State(label, value, counters, false);
+        }
+
+        internal static PandaFacialEyelidValueState ReadEyelid(
+            PandaFacialAuthoringTarget target,
+            bool isLeft,
+            float openExpression)
+        {
+            string side = isLeft ? "Left" : "Right";
+            PandaFacialControllerValueState close = ReadSingle(
+                target,
+                "Eyelid Close " + side,
+                isLeft ? PandaFacialSemanticChannels.EyeCloseL : PandaFacialSemanticChannels.EyeCloseR);
+            PandaFacialControllerValueState smile = ReadSingle(
+                target,
+                "Eye Smile " + side,
+                isLeft ? PandaFacialSemanticChannels.EyeSmileL : PandaFacialSemanticChannels.EyeSmileR);
+            return new PandaFacialEyelidValueState(
+                PandaFacialControllerLogic.ReconstructEyelid(close.Value, smile.Value, openExpression),
+                close,
+                smile);
         }
 
         private static PandaFacialControllerValueState ReadSignedPair(

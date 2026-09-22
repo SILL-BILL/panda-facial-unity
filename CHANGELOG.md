@@ -2,6 +2,18 @@
 
 All notable changes to Panda Facial are documented in this file.
 
+## [0.1.10] - 2026-09-22
+
+### Added
+
+- Added independent Left/Right 2D Eyelid Close / Smile controllers with a five-point drag dead zone and per-drag dominant-axis locking.
+- Added target-specific, Editor-session Eyelid and Brow L/R sync toggles that default to enabled.
+
+### Changed
+
+- Reconstruct the eyelid controller from actual Close and Smile BlendShape weights while preserving transient expression at fully open.
+- Combined the former individual Close and Smile sliders without introducing serialized authoring values or intermediate animation curves.
+
 ## [0.1.9] - 2026-09-22
 
 ### Added

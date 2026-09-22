@@ -57,12 +57,14 @@ namespace SillBill.PandaFacial.Editor.Tests
             mesh = CreateMesh(EyeChannels.Concat(BrowChannels));
             renderer.sharedMesh = mesh;
             PandaFacialUpperFaceFoldoutState.Clear(authoringTarget);
+            PandaFacialUpperFaceSessionState.Clear(authoringTarget);
         }
 
         [TearDown]
         public void TearDown()
         {
             PandaFacialUpperFaceFoldoutState.Clear(authoringTarget);
+            PandaFacialUpperFaceSessionState.Clear(authoringTarget);
             Object.DestroyImmediate(root);
             Object.DestroyImmediate(mesh);
         }
@@ -278,6 +280,122 @@ namespace SillBill.PandaFacial.Editor.Tests
                 "blendShape." + PandaFacialSemanticChannels.BrowUpR
             }));
             Object.DestroyImmediate(clip);
+        }
+
+        [TestCase(1f, 1f, 0f, 0f)]
+        [TestCase(1f, 0f, 100f, 0f)]
+        [TestCase(0f, 0f, 0f, 100f)]
+        [TestCase(0.25f, 0.4f, 15f, 45f)]
+        public void Eyelid2D_ConvertsExpressionAndOpennessToCloseSmile(
+            float expression,
+            float openness,
+            float expectedClose,
+            float expectedSmile)
+        {
+            IReadOnlyList<PandaFacialSemanticWeight> outputs =
+                PandaFacialControllerLogic.EyelidCloseSmile(
+                    true,
+                    new PandaFacialEyelidState(expression, openness));
+
+            Assert.That(outputs.Single(x => x.SemanticId == PandaFacialSemanticChannels.EyeCloseL).Weight,
+                Is.EqualTo(expectedClose).Within(0.0001f));
+            Assert.That(outputs.Single(x => x.SemanticId == PandaFacialSemanticChannels.EyeSmileL).Weight,
+                Is.EqualTo(expectedSmile).Within(0.0001f));
+        }
+
+        [Test]
+        public void Eyelid2D_ReconstructsClosedTransitionAndOpenTransientExpression()
+        {
+            PandaFacialEyelidState mixed = PandaFacialControllerLogic.ReconstructEyelid(0.25f, 0.75f, 1f);
+            PandaFacialEyelidState open = PandaFacialControllerLogic.ReconstructEyelid(0f, 0f, 0.3f);
+
+            Assert.That(mixed.Openness, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(mixed.Expression, Is.EqualTo(0.25f).Within(0.0001f));
+            Assert.That(open.Openness, Is.EqualTo(1f).Within(0.0001f));
+            Assert.That(open.Expression, Is.EqualTo(0.3f).Within(0.0001f));
+        }
+
+        [Test]
+        public void EyelidReader_ReconstructsFromActualBlendShapeWeights()
+        {
+            Map(PandaFacialSemanticChannels.EyeCloseL);
+            Map(PandaFacialSemanticChannels.EyeSmileL);
+            SetWeight(PandaFacialSemanticChannels.EyeCloseL, 20f);
+            SetWeight(PandaFacialSemanticChannels.EyeSmileL, 30f);
+
+            PandaFacialEyelidValueState state = PandaFacialControllerValueReader.ReadEyelid(
+                authoringTarget, true, 1f);
+
+            Assert.That(state.Value.Openness, Is.EqualTo(0.5f).Within(0.0001f));
+            Assert.That(state.Value.Expression, Is.EqualTo(0.4f).Within(0.0001f));
+        }
+
+        [Test]
+        public void AxisLock_WaitsForDeadZoneThenChangesOnlyDominantAxis()
+        {
+            var start = new PandaFacialEyelidState(0.4f, 0.6f);
+            Assert.That(PandaFacialAxisLock.Determine(new Vector2(3f, 2f)), Is.EqualTo(PandaFacialPadAxis.None));
+
+            PandaFacialPadAxis horizontal = PandaFacialAxisLock.Determine(new Vector2(20f, 8f));
+            Assert.That(PandaFacialAxisLock.Resolve(horizontal, new Vector2(1f, 30f)),
+                Is.EqualTo(PandaFacialPadAxis.Horizontal));
+            PandaFacialEyelidState horizontalValue = PandaFacialAxisLock.Apply(
+                start, new Vector2(20f, 80f), new Vector2(100f, 100f), horizontal);
+            Assert.That(horizontalValue.Expression, Is.EqualTo(0.6f).Within(0.0001f));
+            Assert.That(horizontalValue.Openness, Is.EqualTo(0.6f).Within(0.0001f));
+
+            PandaFacialPadAxis vertical = PandaFacialAxisLock.Determine(new Vector2(8f, -20f));
+            PandaFacialEyelidState verticalValue = PandaFacialAxisLock.Apply(
+                start, new Vector2(80f, -20f), new Vector2(100f, 100f), vertical);
+            Assert.That(verticalValue.Expression, Is.EqualTo(0.4f).Within(0.0001f));
+            Assert.That(verticalValue.Openness, Is.EqualTo(0.8f).Within(0.0001f));
+            Assert.That(PandaFacialAxisLock.Resolve(PandaFacialPadAxis.None, new Vector2(20f, 1f)),
+                Is.EqualTo(PandaFacialPadAxis.Horizontal));
+        }
+
+        [Test]
+        public void UpperFaceSyncState_DefaultsOnAndIsTargetSpecificSessionState()
+        {
+            var otherObject = new GameObject("OtherTarget");
+            var other = otherObject.AddComponent<PandaFacialAuthoringTarget>();
+            try
+            {
+                PandaFacialUpperFaceSessionState.Clear(other);
+                Assert.That(PandaFacialUpperFaceSessionState.GetEyelidSync(authoringTarget), Is.True);
+                Assert.That(PandaFacialUpperFaceSessionState.GetBrowSync(authoringTarget), Is.True);
+                PandaFacialUpperFaceSessionState.SetEyelidSync(authoringTarget, false);
+                PandaFacialUpperFaceSessionState.SetBrowSync(authoringTarget, false);
+                Assert.That(PandaFacialUpperFaceSessionState.GetEyelidSync(authoringTarget), Is.False);
+                Assert.That(PandaFacialUpperFaceSessionState.GetBrowSync(authoringTarget), Is.False);
+                Assert.That(PandaFacialUpperFaceSessionState.GetEyelidSync(other), Is.True);
+                Assert.That(PandaFacialUpperFaceSessionState.GetBrowSync(other), Is.True);
+            }
+            finally
+            {
+                PandaFacialUpperFaceSessionState.Clear(other);
+                Object.DestroyImmediate(otherObject);
+            }
+        }
+
+        [Test]
+        public void EyelidSyncPreview_WritesFourActualBlendShapesWithoutAuthoringValues()
+        {
+            Map(PandaFacialSemanticChannels.EyeCloseL);
+            Map(PandaFacialSemanticChannels.EyeCloseR);
+            Map(PandaFacialSemanticChannels.EyeSmileL);
+            Map(PandaFacialSemanticChannels.EyeSmileR);
+            var state = new PandaFacialEyelidState(0.25f, 0.2f);
+
+            PandaFacialControllerOperationReport report =
+                PandaFacialControllerAnimationUtility.ApplyPreview(
+                    authoringTarget,
+                    PandaFacialControllerLogic.EyelidCloseSmilePair(state, state));
+
+            Assert.That(report.AppliedCount, Is.EqualTo(4));
+            Assert.That(GetWeight(PandaFacialSemanticChannels.EyeCloseL), Is.EqualTo(20f).Within(0.0001f));
+            Assert.That(GetWeight(PandaFacialSemanticChannels.EyeCloseR), Is.EqualTo(20f).Within(0.0001f));
+            Assert.That(GetWeight(PandaFacialSemanticChannels.EyeSmileL), Is.EqualTo(60f).Within(0.0001f));
+            Assert.That(GetWeight(PandaFacialSemanticChannels.EyeSmileR), Is.EqualTo(60f).Within(0.0001f));
         }
 
         [Test]

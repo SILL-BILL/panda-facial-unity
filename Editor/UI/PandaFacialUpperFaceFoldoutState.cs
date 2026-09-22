@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEngine;
 
 namespace SillBill.PandaFacial.Editor
 {
@@ -108,6 +109,99 @@ namespace SillBill.PandaFacial.Editor
         {
             int instanceId = target != null ? target.GetInstanceID() : 0;
             return KeyPrefix + instanceId + "." + section;
+        }
+    }
+
+    internal enum PandaFacialPadAxis
+    {
+        None,
+        Horizontal,
+        Vertical
+    }
+
+    internal static class PandaFacialAxisLock
+    {
+        internal const float DeadZone = 5f;
+
+        internal static PandaFacialPadAxis Determine(Vector2 delta, float deadZone = DeadZone)
+        {
+            if (delta.magnitude < deadZone)
+                return PandaFacialPadAxis.None;
+            return Mathf.Abs(delta.x) >= Mathf.Abs(delta.y)
+                ? PandaFacialPadAxis.Horizontal
+                : PandaFacialPadAxis.Vertical;
+        }
+
+        internal static PandaFacialPadAxis Resolve(
+            PandaFacialPadAxis lockedAxis,
+            Vector2 delta,
+            float deadZone = DeadZone)
+        {
+            return lockedAxis == PandaFacialPadAxis.None
+                ? Determine(delta, deadZone)
+                : lockedAxis;
+        }
+
+        internal static PandaFacialEyelidState Apply(
+            PandaFacialEyelidState start,
+            Vector2 delta,
+            Vector2 padSize,
+            PandaFacialPadAxis axis)
+        {
+            if (axis == PandaFacialPadAxis.Horizontal)
+                return new PandaFacialEyelidState(start.Expression + delta.x / padSize.x, start.Openness);
+            if (axis == PandaFacialPadAxis.Vertical)
+                return new PandaFacialEyelidState(start.Expression, start.Openness - delta.y / padSize.y);
+            return start;
+        }
+    }
+
+    internal static class PandaFacialUpperFaceSessionState
+    {
+        private const string KeyPrefix = "SillBill.PandaFacial.UpperFaceSession.";
+
+        internal static bool GetEyelidSync(PandaFacialAuthoringTarget target) =>
+            GetBool(target, "EyelidSync", true);
+
+        internal static void SetEyelidSync(PandaFacialAuthoringTarget target, bool value) =>
+            SetBool(target, "EyelidSync", value);
+
+        internal static bool GetBrowSync(PandaFacialAuthoringTarget target) =>
+            GetBool(target, "BrowSync", true);
+
+        internal static void SetBrowSync(PandaFacialAuthoringTarget target, bool value) =>
+            SetBool(target, "BrowSync", value);
+
+        internal static float GetOpenExpression(PandaFacialAuthoringTarget target, bool isLeft) =>
+            SessionState.GetFloat(GetKey(target, isLeft ? "ExpressionL" : "ExpressionR"), 1f);
+
+        internal static void SetOpenExpression(
+            PandaFacialAuthoringTarget target,
+            bool isLeft,
+            float value) =>
+            SessionState.SetFloat(GetKey(target, isLeft ? "ExpressionL" : "ExpressionR"), Mathf.Clamp01(value));
+
+        internal static void Clear(PandaFacialAuthoringTarget target)
+        {
+            SessionState.EraseInt(GetKey(target, "EyelidSync"));
+            SessionState.EraseInt(GetKey(target, "BrowSync"));
+            SessionState.EraseFloat(GetKey(target, "ExpressionL"));
+            SessionState.EraseFloat(GetKey(target, "ExpressionR"));
+        }
+
+        private static bool GetBool(PandaFacialAuthoringTarget target, string suffix, bool fallback)
+        {
+            int value = SessionState.GetInt(GetKey(target, suffix), -1);
+            return value < 0 ? fallback : value == 1;
+        }
+
+        private static void SetBool(PandaFacialAuthoringTarget target, string suffix, bool value) =>
+            SessionState.SetInt(GetKey(target, suffix), value ? 1 : 0);
+
+        private static string GetKey(PandaFacialAuthoringTarget target, string suffix)
+        {
+            int instanceId = target != null ? target.GetInstanceID() : 0;
+            return KeyPrefix + instanceId + "." + suffix;
         }
     }
 }
